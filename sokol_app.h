@@ -857,6 +857,10 @@ SOKOL_API_DECL const void* sapp_android_get_native_activity(void);
     #if !defined(SOKOL_GLCORE33)
     #error("sokol_app.h: unknown 3D API selected for Linux, must be SOKOL_GLCORE33")
     #endif
+#elif defined(__circle__)
+    #if !defined(SOKOL_GLES2)
+    #error("sokol_app.h: unknown 3D API selected for Circle Raspberry-Pi bare metal")
+    #endif
 #else
 #error "sokol_app.h: Unknown platform"
 #endif
