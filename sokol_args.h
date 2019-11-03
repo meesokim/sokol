@@ -453,7 +453,7 @@ _SOKOL_PRIVATE bool _sargs_in_quotes(void) {
 }
 
 _SOKOL_PRIVATE bool _sargs_is_whitespace(char c) {
-    return !_sargs_in_quotes() && ((c == ' ') || (c == '\t'));
+    return !_sargs_in_quotes() && (/*(c == ' ') ||*/(c == '\t'));
 }
 
 _SOKOL_PRIVATE void _sargs_start_key(void) {
@@ -598,14 +598,17 @@ _SOKOL_PRIVATE bool _sargs_parse_carg(const char* src) {
     }
     return true;
 }
-
+#include <stdio.h>
 _SOKOL_PRIVATE bool _sargs_parse_cargs(int argc, const char** argv) {
     _sargs_expect_key();
     bool retval = true;
     for (int i = 1; i < argc; i++) {
         retval &= _sargs_parse_carg(argv[i]);
+        printf("%d:%s\n", i, argv[i]);
     }
     _sargs.parse_state = 0;
+    printf("_sargs_parse_cargs\n");
+    fflush(stdout);
     return retval;
 }
 #endif /* __EMSCRIPTEN__ */
@@ -656,7 +659,7 @@ EM_JS(void, sargs_js_parse_url, (void), {
 });
 
 #endif /* EMSCRIPTEN */
-
+#include <stdio.h>
 /*== PUBLIC IMPLEMENTATION FUNCTIONS =========================================*/
 SOKOL_API_IMPL void sargs_setup(const sargs_desc* desc) {
     SOKOL_ASSERT(desc);

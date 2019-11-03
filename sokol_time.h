@@ -90,7 +90,9 @@
         distribution.
 */
 #define SOKOL_TIME_INCLUDED (1)
+#if !defined(__circle__)
 #include <stdint.h>
+#endif
 
 #ifndef SOKOL_API_DECL
 #if defined(_WIN32) && defined(SOKOL_DLL) && defined(SOKOL_IMPL)
@@ -169,6 +171,7 @@ typedef struct {
 // On the ESP8266, clock_gettime ignores the first argument and CLOCK_MONOTONIC isn't defined
 #define CLOCK_MONOTONIC 0
 #endif
+
 #include <time.h>
 typedef struct {
     uint32_t initialized;
@@ -194,6 +197,11 @@ EM_JS(double, stm_js_perfnow, (void), {
 });
 #endif
 
+#if defined(__circle__)
+extern void circle_start_timer();
+extern uint64_t circle_get_time();
+#endif 
+
 SOKOL_API_IMPL void stm_setup(void) {
     memset(&_stm, 0, sizeof(_stm));
     _stm.initialized = 0xABCDABCD;
@@ -205,6 +213,9 @@ SOKOL_API_IMPL void stm_setup(void) {
         _stm.start = mach_absolute_time();
     #elif defined(__EMSCRIPTEN__)
         _stm.start = stm_js_perfnow();
+    #elif defined(__circle__)
+        circle_start_timer();
+        _stm.start = circle_get_time();
     #else
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -226,6 +237,8 @@ SOKOL_API_IMPL uint64_t stm_now(void) {
         double js_now = stm_js_perfnow() - _stm.start;
         SOKOL_ASSERT(js_now >= 0.0);
         now = (uint64_t) (js_now * 1000000.0);
+    #elif defined(__circle__)
+        now = circle_get_time();
     #else
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);

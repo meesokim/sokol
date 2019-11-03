@@ -888,7 +888,7 @@ SOKOL_API_DECL const void* sapp_android_get_native_activity(void);
 #endif
 #ifndef SOKOL_LOG
     #ifdef SOKOL_DEBUG
-        #if defined(__ANDROID__)
+        #if defined(__ANDROID1__)
             #include <android/log.h>
             #define SOKOL_LOG(s) { SOKOL_ASSERT(s); __android_log_write(ANDROID_LOG_INFO, "SOKOL_APP", s); }
         #else
@@ -7009,6 +7009,29 @@ int main(int argc, char* argv[]) {
 }
 #endif /* SOKOL_NO_ENTRY */
 #endif /* LINUX */
+
+/*== RASPBERRY PI (CIRCLE)====================================================*/
+
+#if defined(FIPS_RASPBERRYPI)
+#include <bcm_host.h>
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+
+extern void circle_initialize();
+_SOKOL_PRIVATE void _sapp_run(const sapp_desc* desc) {
+    _sapp_init_state(desc);
+    circle_initialize();
+    bcm_host_init();     
+}
+int main(void) {
+    int argc = 0;
+    char **argv = 0;
+    sapp_desc desc = sokol_main(argc, argv);
+    _sapp_run(&desc);
+    return 0;
+}
+#endif /* FIPS_RASPBERRYPI */
 
 /*== PUBLIC API FUNCTIONS ====================================================*/
 #if defined(SOKOL_NO_ENTRY)
