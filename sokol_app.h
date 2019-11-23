@@ -736,6 +736,8 @@ extern sapp_desc sokol_main(int argc, char* argv[]);
 SOKOL_API_DECL bool sapp_isvalid(void);
 /* returns the current framebuffer width in pixels */
 SOKOL_API_DECL int sapp_width(void);
+/* returns the current window width in pixels */
+SOKOL_API_DECL int sapp_window_width(void);
 /* returns the current framebuffer height in pixels */
 SOKOL_API_DECL int sapp_height(void);
 /* returns true when high_dpi was requested and actually running in a high-dpi scenario */
@@ -4527,7 +4529,6 @@ _SOKOL_PRIVATE bool _sapp_android_init_egl(void) {
     if (eglInitialize(display, NULL, NULL) == EGL_FALSE) {
         return false;
     }
-
     EGLint alpha_size = _sapp.desc.alpha ? 8 : 0;
     const EGLint cfg_attributes[] = {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
@@ -4771,8 +4772,8 @@ _SOKOL_PRIVATE bool _sapp_android_touch_event(const AInputEvent* e) {
     for (int32_t i = 0; i < _sapp.event.num_touches; i++) {
         sapp_touchpoint* dst = &_sapp.event.touches[i];
         dst->identifier = AMotionEvent_getPointerId(e, i);
-        dst->pos_x = (AMotionEvent_getRawX(e, i) / _sapp.window_width) * _sapp.framebuffer_width;
-        dst->pos_y = (AMotionEvent_getRawY(e, i) / _sapp.window_height) * _sapp.framebuffer_height;
+        dst->pos_x = (AMotionEvent_getX(e, i) / _sapp.window_width) * _sapp.framebuffer_width;
+        dst->pos_y = (AMotionEvent_getY(e, i) / _sapp.window_height) * _sapp.framebuffer_height;
 
         if (action == AMOTION_EVENT_ACTION_POINTER_DOWN ||
             action == AMOTION_EVENT_ACTION_POINTER_UP) {
@@ -7075,6 +7076,10 @@ SOKOL_API_IMPL uint64_t sapp_frame_count(void) {
 
 SOKOL_API_IMPL int sapp_width(void) {
     return (_sapp.framebuffer_width > 0) ? _sapp.framebuffer_width : 1;
+}
+
+SOKOL_API_IMPL int sapp_window_width(void) {
+    return (_sapp.window_width > 0) ? _sapp.window_width : 1;
 }
 
 SOKOL_API_IMPL int sapp_height(void) {

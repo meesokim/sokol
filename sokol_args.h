@@ -604,10 +604,10 @@ _SOKOL_PRIVATE bool _sargs_parse_cargs(int argc, const char** argv) {
     bool retval = true;
     for (int i = 1; i < argc; i++) {
         retval &= _sargs_parse_carg(argv[i]);
-        printf("%d:%s\n", i, argv[i]);
+//        printf("%d:%s\n", i, argv[i]);
     }
     _sargs.parse_state = 0;
-    printf("_sargs_parse_cargs\n");
+//    printf("_sargs_parse_cargs\n");
     fflush(stdout);
     return retval;
 }
