@@ -7020,15 +7020,137 @@ int main(int argc, char* argv[]) {
 #include <GLES2/gl2ext.h>
 
 extern void circle_initialize();
-_SOKOL_PRIVATE void _sapp_run(const sapp_desc* desc) {
-    _sapp_init_state(desc);
-    circle_initialize();
-    bcm_host_init();     
+
+
+typedef struct {
+    uint32_t screen_width;
+    uint32_t screen_height;
+    // OpenGL|ES objects
+    DISPMANX_DISPLAY_HANDLE_T dispman_display;
+    DISPMANX_ELEMENT_HANDLE_T dispman_element;
+    EGLConfig config;
+    EGLDisplay display;
+    EGLContext context;
+    EGLSurface surface;
+} _sapp_circle_state_t;
+
+static _sapp_circle_state_t _state, *state=&_state;
+
+#define check() assert(glGetError() == 0)
+
+static void init_ogl(_sapp_circle_state_t *state)
+{
+   int32_t success = 0;
+   EGLBoolean result;
+   EGLint num_config;
+
+   static EGL_DISPMANX_WINDOW_T nativewindow;
+
+   DISPMANX_UPDATE_HANDLE_T dispman_update;
+   VC_RECT_T dst_rect;
+   VC_RECT_T src_rect;
+
+   static const EGLint attribute_list[] =
+   {
+      EGL_RED_SIZE, 8,
+      EGL_GREEN_SIZE, 8,
+      EGL_BLUE_SIZE, 8,
+      EGL_ALPHA_SIZE, 8,
+      EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+      EGL_NONE
+   };
+   
+   static const EGLint context_attributes[] = 
+   {
+      EGL_CONTEXT_CLIENT_VERSION, 2,
+      EGL_NONE
+   };
+   EGLConfig config;
+
+   // get an EGL display connection
+   state->display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+   SOKOL_ASSERT(state->display!=EGL_NO_DISPLAY);
+   check();
+
+   // initialize the EGL display connection
+   result = eglInitialize(state->display, NULL, NULL);
+   SOKOL_ASSERT(EGL_FALSE != result);
+   check();
+
+   // get an appropriate EGL frame buffer configuration
+   result = eglChooseConfig(state->display, attribute_list, &config, 1, &num_config);
+   SOKOL_ASSERT(EGL_FALSE != result);
+   check();
+
+   // get an appropriate EGL frame buffer configuration
+   result = eglBindAPI(EGL_OPENGL_ES_API);
+   SOKOL_ASSERT(EGL_FALSE != result);
+   check();
+
+   // create an EGL rendering context
+   state->context = eglCreateContext(state->display, config, EGL_NO_CONTEXT, context_attributes);
+   SOKOL_ASSERT(state->context!=EGL_NO_CONTEXT);
+   check();
+
+   // create an EGL window surface
+   success = graphics_get_display_size(0 /* LCD */, &state->screen_width, &state->screen_height);
+   SOKOL_ASSERT( success >= 0 );
+
+   dst_rect.x = 0;
+   dst_rect.y = 0;
+   dst_rect.width = state->screen_width;
+   dst_rect.height = state->screen_height;
+      
+   src_rect.x = 0;
+   src_rect.y = 0;
+   src_rect.width = state->screen_width << 16;
+   src_rect.height = state->screen_height << 16;        
+
+   state->dispman_display = vc_dispmanx_display_open( 0 /* LCD */);
+   dispman_update = vc_dispmanx_update_start( 0 );
+         
+   state->dispman_element = vc_dispmanx_element_add ( dispman_update, state->dispman_display,
+      0/*layer*/, &dst_rect, 0/*src*/,
+      &src_rect, DISPMANX_PROTECTION_NONE, 0 /*alpha*/, 0/*clamp*/, 0/*transform*/);
+      
+   nativewindow.element = state->dispman_element;
+   nativewindow.width = state->screen_width;
+   nativewindow.height = state->screen_height;
+   vc_dispmanx_update_submit_sync( dispman_update );
+      
+   check();
+
+   state->surface = eglCreateWindowSurface( state->display, config, &nativewindow, NULL );
+   SOKOL_ASSERT(state->surface != EGL_NO_SURFACE);
+   check();
+
+   // connect the context to the surface
+   result = eglMakeCurrent(state->display, state->surface, state->surface, state->context);
+   SOKOL_ASSERT(EGL_FALSE != result);
+   check();
+
+   // Set background color and clear buffers
+   glClearColor(0.15f, 0.25f, 0.35f, 1.0f);
+   glClear( GL_COLOR_BUFFER_BIT );
+
+   check();
 }
-int main(void) {
+
+_SOKOL_PRIVATE void _sapp_run(const sapp_desc* desc) {
+    while(true)
+        _sapp_frame();
+}
+
+int _main(void) {
+    bcm_host_init();
+    // Clear application state
+    memset( state, 0, sizeof( *state ) );
+    // Start OGLES
+    init_ogl(state); 
     int argc = 0;
     char **argv = 0;
     sapp_desc desc = sokol_main(argc, argv);
+    _sapp_init_state(&desc);
     _sapp_run(&desc);
     return 0;
 }
@@ -7037,7 +7159,9 @@ int main(void) {
 /*== PUBLIC API FUNCTIONS ====================================================*/
 #if defined(SOKOL_NO_ENTRY)
 SOKOL_API_IMPL int sapp_run(const sapp_desc* desc) {
-    SOKOL_ASSERT(desc);
+    desc->width = state->screen_width;
+    desc->height = state->screen_height;
+    _sapp_init_state(desc);
     _sapp_run(desc);
     return 0;
 }
